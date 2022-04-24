@@ -1,0 +1,12 @@
+# HELP kafka_consumer_lag Provides kafka consumer lag
+# TYPE kafka_consumer_lag gauge
+kafka_consumer_lag{groupId="sh2",topic="mytopic",partition="18"} 4
+kafka_consumer_lag{groupId="sh2",topic="mytopic",partition="74"} 9
+kafka_consumer_lag{groupId="sh2",topic="mytopic",partition="108"} 6
+kafka_consumer_lag{groupId="sh2",topic="mytopic",partition="116"} 5
+# HELP kafka_consumer_lag Provides kafka consumer lag
+# TYPE kafka_consumer_lag gauge
+kafka_consumer_lag{groupId="sh2",topic="mytopic",partition="18"} 4
+kafka_consumer_lag{groupId="sh2",topic="mytopic",partition="74"} 9
+kafka_consumer_lag{groupId="sh2",topic="mytopic",partition="108"} 6
+kafka_consumer_lag{groupId="sh2",topic="mytopic",partition="116"} 5

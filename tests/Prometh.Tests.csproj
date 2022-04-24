@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <RootNamespace>Prometh.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="samples\gauge-duplicates.data" />
+    <None Remove="samples\large-output.data" />
+    <None Remove="samples\summary-duplicates.data" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="samples\gauge-duplicates.data" />
+    <EmbeddedResource Include="samples\summary-duplicates.data" />
+    <EmbeddedResource Include="samples\large-output.data" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.1.0" />
+    <PackageReference Include="NSubstitute" Version="4.3.0" />
+    <PackageReference Include="xunit" Version="2.4.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\src\Prometh\Prometh.csproj" />
+  </ItemGroup>
+
+</Project>
