@@ -5,6 +5,15 @@
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Authors>Viacheslav Zholnovach</Authors>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>Vizhion.Prometh</PackageId>
+    <PackageVersion>1.0.0</PackageVersion>
+    <PackageTags>prometheus</PackageTags>
+    <PackageProjectUrl>https://github.com/viacheslave/prometh</PackageProjectUrl>
+    <PackageLicenseUrl>https://github.com/viacheslave/prometh/blob/main/LICENSE</PackageLicenseUrl>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
