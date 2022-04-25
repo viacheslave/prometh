@@ -5,17 +5,18 @@
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Authors>Viacheslav Zholnovach</Authors>
-    <Version>1.0.3</Version>
+    <Version>1.0.4</Version>
     <Description>Prometheus metrics output parser</Description>
   </PropertyGroup>
 
   <PropertyGroup>
     <PackageId>Vizhion.Prometh</PackageId>
-    <PackageVersion>1.0.3</PackageVersion>
+    <PackageVersion>1.0.4</PackageVersion>
     <PackageTags>prometheus</PackageTags>
     <PackageProjectUrl>https://github.com/viacheslave/prometh</PackageProjectUrl>
     <PackageLicenseUrl>https://github.com/viacheslave/prometh/blob/main/LICENSE</PackageLicenseUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>prometh-logo.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
@@ -24,6 +25,7 @@
 
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\"/>
+    <None Include="..\..\resources\prometh-logo.png" Pack="true" PackagePath="\"/>
   </ItemGroup>
 
 </Project>
