@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Authors>Viacheslav Zholnovach</Authors>
     <Version>1.0.2</Version>
+    <Description>Prometheus metrics output parser</Description>
   </PropertyGroup>
 
   <PropertyGroup>
