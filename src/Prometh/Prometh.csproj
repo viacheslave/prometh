@@ -5,13 +5,13 @@
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Authors>Viacheslav Zholnovach</Authors>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <Description>Prometheus metrics output parser</Description>
   </PropertyGroup>
 
   <PropertyGroup>
     <PackageId>Vizhion.Prometh</PackageId>
-    <PackageVersion>1.0.2</PackageVersion>
+    <PackageVersion>1.0.3</PackageVersion>
     <PackageTags>prometheus</PackageTags>
     <PackageProjectUrl>https://github.com/viacheslave/prometh</PackageProjectUrl>
     <PackageLicenseUrl>https://github.com/viacheslave/prometh/blob/main/LICENSE</PackageLicenseUrl>
