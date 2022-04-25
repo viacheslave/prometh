@@ -15,6 +15,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{AE9BDA72-1
 		README.md = README.md
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "resources", "resources", "{8447F775-B806-4934-B6D1-6A98C17C61CC}"
+	ProjectSection(SolutionItems) = preProject
+		resources\prometh-logo.png = resources\prometh-logo.png
+		resources\README.md = resources\README.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
