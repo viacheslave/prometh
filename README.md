@@ -4,6 +4,7 @@ This is a .NET library that parses [Prometheus](http://prometheus.io/) metrics o
 
 The library targets:
 - .NET Standard 2.0
+- .NET 5
 
 ## Usage
 
