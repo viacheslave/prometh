@@ -2,11 +2,10 @@ using Xunit;
 
 namespace Prometh.Tests;
 
-public class MetricsParserMalformedTests
+public class SingleLineParsingTests
 {
   [Theory]
   [InlineData("kafka_consumer_lag{groupId=\"sh2\",topic=\"mytopic\",partition=\"116\"} 5")]
-  
   // duplicate labels
   [InlineData("kafka_consumer_lag{groupId=\"sh2\",groupId=\"sh2\",topic=\"mytopic\",partition=\"116\"} 5")]
   public void MetricsTests_ParseSingle_Passes(string payload)
