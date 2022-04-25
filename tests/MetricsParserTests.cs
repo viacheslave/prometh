@@ -1,15 +1,20 @@
-using NSubstitute;
 using Xunit;
 
 namespace Prometh.Tests;
 
-public class MetricsParserTests
+public class MetricsParserTests : IClassFixture<AssemblyResourcesTestFixture>
 {
+  private readonly AssemblyResourcesTestFixture _resourcesTestFixture;
+
+  public MetricsParserTests(AssemblyResourcesTestFixture resourcesTestFixture)
+  {
+    _resourcesTestFixture = resourcesTestFixture;
+  }
+
   [Fact]
   public void MetricsTests_LargeOutput_Parse_Passes()
   {
-    var resource = "large-output.data";
-    var payload = ResourcesHelper.GetResourcePayload(resource);
+    var payload = _resourcesTestFixture.Resources.GetResourcePayload("large-output.data");
 
     var metrics = Metrics.Parse(payload)
       .ToDictionary(metric => metric.Name);
@@ -32,8 +37,7 @@ public class MetricsParserTests
   [Fact]
   public void MetricsTests_GaugeDuplicate_Should_Return_SingleMetric()
   {
-    var resource = "gauge-duplicates.data";
-    var payload = ResourcesHelper.GetResourcePayload(resource);
+    var payload = _resourcesTestFixture.Resources.GetResourcePayload("gauge-duplicates.data");
 
     var metrics = Metrics.Parse(payload);
 
@@ -50,8 +54,7 @@ public class MetricsParserTests
   [Fact]
   public void MetricsTests_SummaryDuplicate_Should_Return_SingleMetric()
   {
-    var resource = "summary-duplicates.data";
-    var payload = ResourcesHelper.GetResourcePayload(resource);
+    var payload = _resourcesTestFixture.Resources.GetResourcePayload("summary-duplicates.data");
 
     var metrics = Metrics.Parse(payload);
 

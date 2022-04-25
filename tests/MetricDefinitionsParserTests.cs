@@ -2,13 +2,19 @@ using Xunit;
 
 namespace Prometh.Tests;
 
-public class MetricDefinitionsParserTests
+public class MetricDefinitionsParserTests : IClassFixture<AssemblyResourcesTestFixture>
 {
+  private readonly AssemblyResourcesTestFixture _resourcesTestFixture;
+
+  public MetricDefinitionsParserTests(AssemblyResourcesTestFixture resourcesTestFixture)
+  {
+    _resourcesTestFixture = resourcesTestFixture;
+  }
+
   [Fact]
   public void MetricDefinitionsParser_LargeOutput_Parse_Passes()
   {
-    var resource = "large-output.data";
-    var payload = ResourcesHelper.GetResourcePayload(resource);
+    var payload = _resourcesTestFixture.Resources.GetResourcePayload("large-output.data");
 
     var definitions = MetricDefinitionsParser.Parse(payload);
     var expectedDefinitions = GetDefinitions();
