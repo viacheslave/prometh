@@ -1,10 +1,10 @@
 namespace Prometh;
 
-public class MetricLineLabelsKey
+internal class MetricLineLabelsKey
 {
   public SortedDictionary<string, string> Labels { get; }
 
-  public MetricLineLabelsKey(SortedDictionary<string, string> labels, params string[] except)
+  internal MetricLineLabelsKey(SortedDictionary<string, string> labels, params string[] except)
   {
     Labels = new SortedDictionary<string, string>(
       labels ?? throw new ArgumentNullException(nameof(labels)));

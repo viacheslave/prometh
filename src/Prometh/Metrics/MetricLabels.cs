@@ -2,8 +2,14 @@ using System.Text;
 
 namespace Prometh;
 
+/// <summary>
+///   Metric labels container
+/// </summary>
 public sealed class MetricLabels
 {
+  /// <summary>
+  ///   Labels map
+  /// </summary>
   public IReadOnlyDictionary<string, string> Items { get; }
 
   public MetricLabels(IReadOnlyDictionary<string, string> items)

@@ -1,7 +1,16 @@
 namespace Prometh;
 
+/// <summary>
+///   Prometheus output parser
+/// </summary>
 public static class Metrics
 {
+  /// <summary>
+  ///   Parses out metrics data
+  /// </summary>
+  /// <param name="payload">Text payload</param>
+  /// <returns>A collection of metrics <see cref="Metric"/></returns>
+  /// <exception cref="ArgumentOutOfRangeException"></exception>
   public static IReadOnlyCollection<Metric> Parse(string payload)
   {
     if (payload is null)

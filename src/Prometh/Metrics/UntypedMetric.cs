@@ -1,9 +1,16 @@
 namespace Prometh;
 
+/// <summary>
+///   Metric of type "untyped"
+/// </summary>
 public class UntypedMetric : Metric
 {
+  /// <inheritdoc/>
   public override MetricType Type => MetricType.Untyped;
 
+  /// <summary>
+  ///   Metric values by labels. <see cref="UntypedMetricData"/>
+  /// </summary>
   public IReadOnlyCollection<UntypedMetricData> Lines { get; }
 
   internal UntypedMetric(string name, string help, IEnumerable<UntypedMetricData> lines)
@@ -34,13 +41,22 @@ public class UntypedMetric : Metric
 
   public override string ToString() => $"{Name} ({Lines.Count} line(s))";
 
+  /// <summary>
+  ///   Untyped metric data
+  /// </summary>
   public class UntypedMetricData
   {
+    /// <summary>
+    ///   Metric labels. <see cref="MetricLabels"/>
+    /// </summary>
     public MetricLabels Labels { get; }
 
+    /// <summary>
+    ///   Text value.
+    /// </summary>
     public string Value { get; }
 
-    public UntypedMetricData(IReadOnlyDictionary<string, string> labels, string value)
+    internal UntypedMetricData(IReadOnlyDictionary<string, string> labels, string value)
     {
       Labels = new MetricLabels(labels ?? new SortedDictionary<string, string>());
       Value = value;

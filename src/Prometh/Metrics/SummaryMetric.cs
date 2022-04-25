@@ -1,9 +1,16 @@
 namespace Prometh;
 
+/// <summary>
+///   Metric of type "summary"
+/// </summary>
 public class SummaryMetric : Metric
 {
+  /// <inheritdoc/>
   public override MetricType Type => MetricType.Summary;
 
+  /// <summary>
+  ///   Metric values by labels. <see cref="SplitMetricData"/>
+  /// </summary>
   public IReadOnlyCollection<SplitMetricData> Lines { get; }
 
   internal SummaryMetric(

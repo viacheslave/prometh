@@ -1,9 +1,16 @@
 namespace Prometh;
 
+/// <summary>
+///   Metric of type "histogram"
+/// </summary>
 public class HistogramMetric : Metric
 {
+  /// <inheritdoc/>
   public override MetricType Type => MetricType.Histogram;
 
+  /// <summary>
+  ///   Metric values by labels. <see cref="SplitMetricData"/>
+  /// </summary>
   public IReadOnlyCollection<SplitMetricData> Lines { get; }
 
   internal HistogramMetric(

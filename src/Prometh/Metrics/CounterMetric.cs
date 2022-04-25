@@ -1,9 +1,16 @@
 namespace Prometh;
 
+/// <summary>
+///   Metric of type "counter"
+/// </summary>
 public class CounterMetric : Metric
 {
+  /// <inheritdoc/>
   public override MetricType Type => MetricType.Counter;
 
+  /// <summary>
+  ///   Metric values by labels. <see cref="CounterMetricData"/>
+  /// </summary>
   public IReadOnlyCollection<CounterMetricData> Lines { get; }
 
   internal CounterMetric(string name, string help, IEnumerable < CounterMetricData> lines)
@@ -34,15 +41,27 @@ public class CounterMetric : Metric
 
   public override string ToString() => $"{Name} ({Lines.Count} line(s))";
 
+  /// <summary>
+  ///   Counter metric data
+  /// </summary>
   public class CounterMetricData
   {
+    /// <summary>
+    ///   Metric labels. <see cref="MetricLabels"/>
+    /// </summary>
     public MetricLabels Labels { get; }
 
+    /// <summary>
+    ///   Counter value. Undefined if the parsing failed.
+    /// </summary>
     public long? Value { get; }
 
+    /// <summary>
+    ///   Counter raw text value.
+    /// </summary>
     public string ValueRaw { get; }
 
-    public CounterMetricData(IReadOnlyDictionary<string, string> labels, long? value, string valueRaw)
+    internal CounterMetricData(IReadOnlyDictionary<string, string> labels, long? value, string valueRaw)
     {
       Labels = new MetricLabels(labels ?? new SortedDictionary<string, string>());
 

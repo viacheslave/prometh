@@ -1,9 +1,19 @@
 namespace Prometh;
 
+/// <summary>
+///   Metric's buckets
+/// </summary>
 public class SplitMetricRows
 {
+  /// <summary>
+  ///   Buckets map.
+  ///   Example: ...le="0.5"} 5
+  /// </summary>
   public IReadOnlyDictionary<double, double> Buckets { get; internal init; }
 
+  /// <summary>
+  ///   Buckets raw text map
+  /// </summary>
   public IReadOnlyList<(string key, string value)> BucketsRaw { get; internal init; }
 
   internal static SplitMetricRows Build(IEnumerable<MetricLine> lines, string splitKey)

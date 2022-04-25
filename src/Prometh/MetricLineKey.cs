@@ -1,6 +1,6 @@
 namespace Prometh;
 
-public class MetricLineKey
+internal class MetricLineKey
 {
   public string Name { get; }
 
