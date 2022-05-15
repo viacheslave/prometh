@@ -8,12 +8,15 @@ public class CounterMetric : Metric
   /// <inheritdoc/>
   public override MetricType Type => MetricType.Counter;
 
+  /// <inheritdoc/>
+  public override IEnumerable<MetricLabels> Labels => Lines.Select(line => line.Labels);
+
   /// <summary>
   ///   Metric values by labels. <see cref="CounterMetricData"/>
   /// </summary>
   public IReadOnlyCollection<CounterMetricData> Lines { get; }
 
-  internal CounterMetric(string name, string help, IEnumerable < CounterMetricData> lines)
+  internal CounterMetric(string name, string help, IEnumerable<CounterMetricData> lines)
     : base(name, help)
   {
     if (lines is null)

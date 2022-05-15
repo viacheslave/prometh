@@ -8,6 +8,9 @@ public class GaugeMetric : Metric
   /// <inheritdoc/>
   public override MetricType Type => MetricType.Gauge;
 
+  /// <inheritdoc/>
+  public override IEnumerable<MetricLabels> Labels => Lines.Select(line => line.Labels);
+
   /// <summary>
   ///   Metric values by labels. <see cref="GaugeMetricData"/>
   /// </summary>

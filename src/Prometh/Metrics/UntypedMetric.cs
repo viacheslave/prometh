@@ -8,6 +8,9 @@ public class UntypedMetric : Metric
   /// <inheritdoc/>
   public override MetricType Type => MetricType.Untyped;
 
+  /// <inheritdoc/>
+  public override IEnumerable<MetricLabels> Labels => Lines.Select(line => line.Labels);
+
   /// <summary>
   ///   Metric values by labels. <see cref="UntypedMetricData"/>
   /// </summary>

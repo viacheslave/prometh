@@ -13,6 +13,81 @@ public static class Metrics
   /// <exception cref="ArgumentOutOfRangeException"></exception>
   public static IReadOnlyCollection<Metric> Parse(string payload)
   {
+    var metrics = BuildMetrics(payload);
+
+    return GetGrouped(metrics);
+  }
+
+  /// <summary>
+  ///   Parses out metrics data for specific metric name (case-insensitive)
+  /// </summary>
+  /// <param name="payload">Text payload</param>
+  /// <param name="name">Metric name</param>
+  /// <returns>Metric instance <see cref="Metric"/></returns>
+  /// <exception cref="ArgumentOutOfRangeException"></exception>
+  public static Metric Parse(string payload, string name)
+  {
+    var specifications = new IMetricSpecification[]
+    {
+      new MetricNameSpecification(name)
+    };
+
+    var metrics = BuildMetrics(payload)
+      .Where(metric => specifications.All(specification => specification.Satisfies(metric)));
+
+    return GetGrouped(metrics)
+      .FirstOrDefault();
+  }
+
+  /// <summary>
+  ///   Parses out metrics data filtered by labels and values
+  /// </summary>
+  /// <param name="payload">Text payload</param>
+  /// <param name="labels">Labels filter</param>
+  /// <returns>A collection of metrics <see cref="Metric"/></returns>
+  /// <exception cref="ArgumentOutOfRangeException"></exception>
+  public static IReadOnlyCollection<Metric> Parse(string payload, IReadOnlyDictionary<string, string> labels)
+  {
+    labels ??= new Dictionary<string, string>();
+
+    var specifications = new IMetricSpecification[]
+    {
+      new MetricLabelsSpecification(labels)
+    };
+
+    var metrics = BuildMetrics(payload)
+      .Where(metric => specifications.All(specification => specification.Satisfies(metric)));
+
+    return GetGrouped(metrics);
+  }
+
+  /// <summary>
+  ///   Parses out metrics data for specific metric name (case-insensitive) and filtered by labels and values
+  /// </summary>
+  /// <param name="payload">Text payload</param>
+  /// <param name="name">Metric name</param>
+  /// <param name="labels">Labels filter</param>
+  /// <returns>Metric instance <see cref="Metric"/></returns>
+  /// <exception cref="ArgumentOutOfRangeException"></exception>
+  public static Metric Parse(string payload, string name, IReadOnlyDictionary<string, string> labels)
+  {
+    labels ??= new Dictionary<string, string>();
+
+    var specifications = new IMetricSpecification[]
+    {
+      new MetricNameSpecification(name),
+      new MetricLabelsSpecification(labels)
+    };
+
+    var metrics = BuildMetrics(payload)
+      .Where(metric => specifications.All(specification => specification.Satisfies(metric)));
+
+    return GetGrouped(metrics)
+      .FirstOrDefault();
+  }
+
+  private static IReadOnlyCollection<Metric> BuildMetrics(string payload)
+  {
     if (payload is null)
     {
       return new List<Metric>();
@@ -44,8 +119,8 @@ public static class Metrics
       var metricCountName = metricName.WithCount();
 
       var countKey = keys.FirstOrDefault(
-        key => 
-          key.Name == metricCountName && 
+        key =>
+          key.Name == metricCountName &&
           key.LabelsKey.Equals(sumKey.LabelsKey));
 
       // no corresponsing metric_count line
@@ -63,9 +138,9 @@ public static class Metrics
         var ls = new[]
         {
           (
-            labels: (IReadOnlyDictionary<string, string>)sumKey.Labels, 
-            lineSum: lines[sumKey], 
-            lineCount: lines[countKey], 
+            labels: (IReadOnlyDictionary<string, string>)sumKey.Labels,
+            lineSum: lines[sumKey],
+            lineCount: lines[countKey],
             linesBucket: quantileKeys.Select(k => lines[k])
           )
         };
@@ -127,52 +202,22 @@ public static class Metrics
 
       var metric = metricType switch
       {
-        MetricType.Gauge => 
+        MetricType.Gauge =>
           new GaugeMetric(metricName, help: metricHelp, new[] { lines[key] }),
 
-        MetricType.Counter => 
+        MetricType.Counter =>
           new CounterMetric(metricName, help: metricHelp, new[] { lines[key] }),
 
-        _ => 
+        _ =>
           (Metric)new UntypedMetric(metricName, help: metricHelp, new[] { lines[key] }),
       };
 
       metrics.Add(metric);
     }
 
-    return metrics
-      .GroupBy(metric => metric.Name)
-      .Select(gr => 
-      {
-        var fst = gr.First();
+    return metrics;
 
-        var name = gr.Key;
-        var help = fst.Help;
-        var type = fst.Type;
-
-        return type switch
-        {
-          MetricType.Untyped =>
-            (Metric)new UntypedMetric(name, help, gr.SelectMany(m => ((UntypedMetric)m).Lines)),
-
-          MetricType.Counter =>
-            new CounterMetric(name, help, gr.SelectMany(m => ((CounterMetric)m).Lines)),
-
-          MetricType.Gauge =>
-            new GaugeMetric(name, help, gr.SelectMany(m => ((GaugeMetric)m).Lines)),
-
-          MetricType.Summary =>
-            new SummaryMetric(name, help, gr.SelectMany(m => ((SummaryMetric)m).Lines)),
-
-          MetricType.Histogram =>
-            new HistogramMetric(name, help, gr.SelectMany(m => ((HistogramMetric)m).Lines)),
-
-          _ => throw new ArgumentOutOfRangeException(nameof(MetricType))
-        };
-      })
-      .ToList();
-
-    IReadOnlyCollection<MetricLineKey> GetQuantileKeys(MetricLineKey sumKey, MetricLineKey countKey, 
+    IReadOnlyCollection<MetricLineKey> GetQuantileKeys(MetricLineKey sumKey, MetricLineKey countKey,
       string metricName)
     {
       if (sumKey.HasQuantile || countKey.HasQuantile)
@@ -203,5 +248,40 @@ public static class Metrics
           key.HasLe)
         .ToList();
     }
+  }
+
+  private static IReadOnlyCollection<Metric> GetGrouped(IEnumerable<Metric> metrics)
+  {
+    return metrics
+      .GroupBy(metric => metric.Name)
+      .Select(gr =>
+      {
+        var fst = gr.First();
+
+        var name = gr.Key;
+        var help = fst.Help;
+        var type = fst.Type;
+
+        return type switch
+        {
+          MetricType.Untyped =>
+            (Metric)new UntypedMetric(name, help, gr.SelectMany(m => ((UntypedMetric)m).Lines)),
+
+          MetricType.Counter =>
+            new CounterMetric(name, help, gr.SelectMany(m => ((CounterMetric)m).Lines)),
+
+          MetricType.Gauge =>
+            new GaugeMetric(name, help, gr.SelectMany(m => ((GaugeMetric)m).Lines)),
+
+          MetricType.Summary =>
+            new SummaryMetric(name, help, gr.SelectMany(m => ((SummaryMetric)m).Lines)),
+
+          MetricType.Histogram =>
+            new HistogramMetric(name, help, gr.SelectMany(m => ((HistogramMetric)m).Lines)),
+
+          _ => throw new ArgumentOutOfRangeException(nameof(MetricType))
+        };
+      })
+      .ToList();
   }
 }

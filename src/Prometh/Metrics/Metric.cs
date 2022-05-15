@@ -3,7 +3,7 @@ namespace Prometh;
 /// <summary>
 ///   Base metric definition
 /// </summary>
-public abstract class Metric
+public abstract class Metric : ILabels
 {
   /// <summary>
   ///   Metric name
@@ -20,6 +20,9 @@ public abstract class Metric
   ///   Defined by implementations.
   /// </summary>
   public abstract MetricType Type { get; }
+
+  /// <inheritdoc />
+  public abstract IEnumerable<MetricLabels> Labels { get; }
 
   protected internal Metric(string name, string help)
   {

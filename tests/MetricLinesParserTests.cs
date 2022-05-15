@@ -2,11 +2,11 @@ using Xunit;
 
 namespace Prometh.Tests;
 
-public class MetricLinesParsingTests : IClassFixture<AssemblyResourcesTestFixture>
+public class MetricLinesParserTests : IClassFixture<AssemblyResourcesTestFixture>
 {
   private readonly AssemblyResourcesTestFixture _resourcesTestFixture;
 
-  public MetricLinesParsingTests(AssemblyResourcesTestFixture resourcesTestFixture)
+  public MetricLinesParserTests(AssemblyResourcesTestFixture resourcesTestFixture)
   {
     _resourcesTestFixture = resourcesTestFixture;
   }

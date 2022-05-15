@@ -2,7 +2,7 @@ using Xunit;
 
 namespace Prometh.Tests;
 
-public class SingleLineParsingTests
+public class ParserSingleLineTests
 {
   [Theory]
   [InlineData("kafka_consumer_lag{groupId=\"sh2\",topic=\"mytopic\",partition=\"116\"} 5")]
