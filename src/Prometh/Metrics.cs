@@ -13,9 +13,9 @@ public static class Metrics
   /// <exception cref="ArgumentOutOfRangeException"></exception>
   public static IReadOnlyCollection<Metric> Parse(string payload)
   {
-    var metrics = BuildMetrics(payload);
+    var metrics = MetricsBuilder.BuildMetrics(payload);
 
-    return GetGrouped(metrics);
+    return MetricsBuilder.GetGrouped(metrics);
   }
 
   /// <summary>
@@ -32,10 +32,10 @@ public static class Metrics
       new MetricNameSpecification(name)
     };
 
-    var metrics = BuildMetrics(payload)
+    var metrics = MetricsBuilder.BuildMetrics(payload)
       .Where(metric => specifications.All(specification => specification.Satisfies(metric)));
 
-    return GetGrouped(metrics)
+    return MetricsBuilder.GetGrouped(metrics)
       .FirstOrDefault();
   }
 
@@ -55,10 +55,10 @@ public static class Metrics
       new MetricLabelsSpecification(labels)
     };
 
-    var metrics = BuildMetrics(payload)
+    var metrics = MetricsBuilder.BuildMetrics(payload)
       .Where(metric => specifications.All(specification => specification.Satisfies(metric)));
 
-    return GetGrouped(metrics);
+    return MetricsBuilder.GetGrouped(metrics);
   }
 
   /// <summary>
@@ -79,209 +79,273 @@ public static class Metrics
       new MetricLabelsSpecification(labels)
     };
 
-    var metrics = BuildMetrics(payload)
+    var metrics = MetricsBuilder.BuildMetrics(payload)
       .Where(metric => specifications.All(specification => specification.Satisfies(metric)));
 
-    return GetGrouped(metrics)
+    return MetricsBuilder.GetGrouped(metrics)
       .FirstOrDefault();
   }
 
-  private static IReadOnlyCollection<Metric> BuildMetrics(string payload)
+  /// <summary>
+  ///   Gets metric's raw unparsed value.
+  /// </summary>
+  /// <param name="payload">Text payload</param>
+  /// <param name="name">Metric name</param>
+  /// <param name="labels">Metric labels</param>
+  /// <returns>Metric value</returns>
+  public static string GetRawValue(string payload, string name, IReadOnlyDictionary<string, string> labels)
   {
-    if (payload is null)
-    {
-      return new List<Metric>();
-    }
+    var metric = GetSingleLabeledMetric<Metric>(payload, name, labels);
 
-    var definitions = MetricDefinitionsParser.Parse(payload);
-
-    // remove duplicates
-    var lines = MetricLineParser.ParseMetrics(payload)
-      .GroupBy(line => new MetricLineKey(line.Name, line.Labels))
-      .ToDictionary(
-        g => g.Key,
-        g => g.First());
-
-    var keys = new HashSet<MetricLineKey>(lines.Keys);
-
-    var metrics = new List<Metric>();
-
-    // parse summary and histogram metrics
-
-    var linkedKeys = new List<MetricLineKey>();
-
-    var sumSuffix = string.Empty.WithSum();
-    var sumKeys = keys.Where(line => line.Name.EndsWith(sumSuffix));
-
-    foreach (var sumKey in sumKeys)
-    {
-      var metricName = sumKey.Name.Substring(0, sumKey.Name.Length - sumSuffix.Length);
-      var metricCountName = metricName.WithCount();
-
-      var countKey = keys.FirstOrDefault(
-        key =>
-          key.Name == metricCountName &&
-          key.LabelsKey.Equals(sumKey.LabelsKey));
-
-      // no corresponsing metric_count line
-      if (countKey is null)
-      {
-        continue;
-      }
-
-      // match with summary
-      var quantileKeys = GetQuantileKeys(sumKey, countKey, metricName);
-      if (quantileKeys?.Count > 0)
-      {
-        definitions.TryGetValue(metricName, out var definition);
-
-        var ls = new[]
-        {
-          (
-            labels: (IReadOnlyDictionary<string, string>)sumKey.Labels,
-            lineSum: lines[sumKey],
-            lineCount: lines[countKey],
-            linesBucket: quantileKeys.Select(k => lines[k])
-          )
-        };
-
-        var summary = new SummaryMetric(
-          name: metricName,
-          help: definition.Help,
-          lines: ls);
-
-        metrics.Add(summary);
-
-        linkedKeys.Add(sumKey);
-        linkedKeys.Add(countKey);
-        linkedKeys.AddRange(quantileKeys);
-
-        continue;
-      }
-
-      // match with histogram
-      var bucketKeys = GetBucketKeys(sumKey, countKey, metricName.WithBucket());
-      if (bucketKeys is not null)
-      {
-        definitions.TryGetValue(metricName, out var definition);
-
-        var ls = new[]
-        {
-          (
-            labels: (IReadOnlyDictionary<string, string>)sumKey.Labels,
-            lineSum: lines[sumKey],
-            lineCount: lines[countKey],
-            linesBucket: bucketKeys.Select(k => lines[k])
-          )
-        };
-
-        var histogram = new HistogramMetric(
-          name: metricName,
-          help: definition.Help,
-          lines: ls);
-
-        metrics.Add(histogram);
-
-        linkedKeys.Add(sumKey);
-        linkedKeys.Add(countKey);
-        linkedKeys.AddRange(bucketKeys);
-      }
-    }
-
-    // remove processed lines
-    keys.ExceptWith(linkedKeys);
-
-    foreach (var key in keys)
-    {
-      var metricName = key.Name;
-
-      definitions.TryGetValue(metricName, out var definition);
-
-      var metricType = definition?.Type ?? MetricType.Untyped;
-      var metricHelp = definition?.Help;
-
-      var metric = metricType switch
-      {
-        MetricType.Gauge =>
-          new GaugeMetric(metricName, help: metricHelp, new[] { lines[key] }),
-
-        MetricType.Counter =>
-          new CounterMetric(metricName, help: metricHelp, new[] { lines[key] }),
-
-        _ =>
-          (Metric)new UntypedMetric(metricName, help: metricHelp, new[] { lines[key] }),
-      };
-
-      metrics.Add(metric);
-    }
-
-    return metrics;
-
-    IReadOnlyCollection<MetricLineKey> GetQuantileKeys(MetricLineKey sumKey, MetricLineKey countKey,
-      string metricName)
-    {
-      if (sumKey.HasQuantile || countKey.HasQuantile)
-      {
-        return null;
-      }
-
-      return keys.Where(
-        key =>
-          key.Name == metricName &&
-          key.LabelsExceptQuantileKey.Equals(sumKey.LabelsKey) &&
-          key.HasQuantile)
-        .ToList();
-    }
-
-    IReadOnlyCollection<MetricLineKey> GetBucketKeys(MetricLineKey sumKey, MetricLineKey countKey,
-      string metricName)
-    {
-      if (sumKey.HasLe || countKey.HasLe)
-      {
-        return null;
-      }
-
-      return keys.Where(
-        key =>
-          key.Name == metricName &&
-          key.LabelsExceptLeKey.Equals(sumKey.LabelsKey) &&
-          key.HasLe)
-        .ToList();
-    }
+    return MetricsBuilder.GetRawValue(metric);
   }
 
-  private static IReadOnlyCollection<Metric> GetGrouped(IEnumerable<Metric> metrics)
+  /// <summary>
+  ///   Gets untyped metric's value.
+  /// </summary>
+  /// <param name="payload">Text payload</param>
+  /// <param name="name">Metric name</param>
+  /// <param name="labels">Metric labels</param>
+  /// <returns>Metric value</returns>
+  public static string GetUntypedValue(string payload, string name, IReadOnlyDictionary<string, string> labels)
   {
-    return metrics
-      .GroupBy(metric => metric.Name)
-      .Select(gr =>
-      {
-        var fst = gr.First();
+    var metric = GetSingleLabeledMetric<UntypedMetric>(payload, name, labels);
 
-        var name = gr.Key;
-        var help = fst.Help;
-        var type = fst.Type;
+    return metric.Lines.First().Value; 
+  }
 
-        return type switch
-        {
-          MetricType.Untyped =>
-            (Metric)new UntypedMetric(name, help, gr.SelectMany(m => ((UntypedMetric)m).Lines)),
+  /// <summary>
+  ///   Gets counter metric's value.
+  /// </summary>
+  /// <param name="payload">Text payload</param>
+  /// <param name="name">Metric name</param>
+  /// <param name="labels">Metric labels</param>
+  /// <returns>Metric value</returns>
+  public static long? GetCounterValue(string payload, string name, IReadOnlyDictionary<string, string> labels)
+  {
+    var metric = GetSingleLabeledMetric<CounterMetric>(payload, name, labels);
 
-          MetricType.Counter =>
-            new CounterMetric(name, help, gr.SelectMany(m => ((CounterMetric)m).Lines)),
+    return metric.Lines.First().Value;
+  }
 
-          MetricType.Gauge =>
-            new GaugeMetric(name, help, gr.SelectMany(m => ((GaugeMetric)m).Lines)),
+  /// <summary>
+  ///   Gets gauge metric's value.
+  /// </summary>
+  /// <param name="payload">Text payload</param>
+  /// <param name="name">Metric name</param>
+  /// <param name="labels">Metric labels</param>
+  /// <returns>Metric value</returns>
+  public static double? GetGaugeValue(string payload, string name, IReadOnlyDictionary<string, string> labels)
+  {
+    var metric = GetSingleLabeledMetric<GaugeMetric>(payload, name, labels);
 
-          MetricType.Summary =>
-            new SummaryMetric(name, help, gr.SelectMany(m => ((SummaryMetric)m).Lines)),
+    return metric.Lines.First().Value;
+  }
 
-          MetricType.Histogram =>
-            new HistogramMetric(name, help, gr.SelectMany(m => ((HistogramMetric)m).Lines)),
+  /// <summary>
+  ///   Gets summary metric's value by quantile.
+  /// </summary>
+  /// <param name="payload">Text payload</param>
+  /// <param name="name">Metric name</param>
+  /// <param name="labels">Metric labels</param>
+  /// <param name="quantile">Metric quantile</param>
+  /// <returns>Metric value</returns>
+  public static double? GetSummaryValue(string payload, string name, IReadOnlyDictionary<string, string> labels, double quantile)
+  {
+    var metric = GetSingleLabeledMetric<SummaryMetric>(payload, name, labels);
 
-          _ => throw new ArgumentOutOfRangeException(nameof(MetricType))
-        };
-      })
-      .ToList();
+    var quantileRows = metric.Lines.First().Rows.Buckets;
+    return quantileRows.TryGetValue(quantile, out var value) ? value : null;
+  }
+
+  /// <summary>
+  ///   Gets summary metric's raw value by quantile.
+  /// </summary>
+  /// <param name="payload">Text payload</param>
+  /// <param name="name">Metric name</param>
+  /// <param name="labels">Metric labels</param>
+  /// <param name="quantile">Metric quantile</param>
+  /// <returns>Metric value</returns>
+  public static string GetSummaryRawValue(string payload, string name, IReadOnlyDictionary<string, string> labels, string quantile)
+  {
+    var metric = GetSingleLabeledMetric<SummaryMetric>(payload, name, labels);
+
+    var quantileRows = metric.Lines.First().Rows.BucketsRaw;
+
+    bool predicate((string key, string value) row) => 
+      string.Equals(row.key, quantile, StringComparison.InvariantCultureIgnoreCase);
+
+    return quantileRows.Any(row => predicate(row))
+      ? quantileRows.First(row => predicate(row)).value
+      : null;
+  }
+
+  /// <summary>
+  ///   Gets summary metric's sum value.
+  /// </summary>
+  /// <param name="payload">Text payload</param>
+  /// <param name="name">Metric name</param>
+  /// <param name="labels">Metric labels</param>
+  /// <returns>Metric value</returns>
+  public static double? GetSummarySum(string payload, string name, IReadOnlyDictionary<string, string> labels)
+  {
+    var metric = GetSingleLabeledMetric<SummaryMetric>(payload, name, labels);
+
+    return metric.Lines.First().Sum;
+  }
+
+  /// <summary>
+  ///   Gets summary metric's raw sum value.
+  /// </summary>
+  /// <param name="payload">Text payload</param>
+  /// <param name="name">Metric name</param>
+  /// <param name="labels">Metric labels</param>
+  /// <returns>Metric value</returns>
+  public static string GetSummarySumRawValue(string payload, string name, IReadOnlyDictionary<string, string> labels)
+  {
+    var metric = GetSingleLabeledMetric<SummaryMetric>(payload, name, labels);
+
+    return metric.Lines.First().SumRaw;
+  }
+
+  /// <summary>
+  ///   Gets summary metric's count value.
+  /// </summary>
+  /// <param name="payload">Text payload</param>
+  /// <param name="name">Metric name</param>
+  /// <param name="labels">Metric labels</param>
+  /// <returns>Metric value</returns>
+  public static long? GetSummaryCount(string payload, string name, IReadOnlyDictionary<string, string> labels)
+  {
+    var metric = GetSingleLabeledMetric<SummaryMetric>(payload, name, labels);
+
+    return metric.Lines.First().Count;
+  }
+
+  /// <summary>
+  ///   Gets summary metric's raw count value.
+  /// </summary>
+  /// <param name="payload">Text payload</param>
+  /// <param name="name">Metric name</param>
+  /// <param name="labels">Metric labels</param>
+  /// <returns>Metric value</returns>
+  public static string GetSummaryCountRawValue(string payload, string name, IReadOnlyDictionary<string, string> labels)
+  {
+    var metric = GetSingleLabeledMetric<SummaryMetric>(payload, name, labels);
+
+    return metric.Lines.First().CountRaw;
+  }
+
+  /// <summary>
+  ///   Gets histogram metric's value by bucket.
+  /// </summary>
+  /// <param name="payload">Text payload</param>
+  /// <param name="name">Metric name</param>
+  /// <param name="labels">Metric labels</param>
+  /// <param name="bucket">Metric bucket</param>
+  /// <returns>Metric value</returns>
+  public static double? GetHistogramValue(string payload, string name, IReadOnlyDictionary<string, string> labels, double bucket)
+  {
+    var metric = GetSingleLabeledMetric<HistogramMetric>(payload, name, labels);
+
+    var quantileRows = metric.Lines.First().Rows.Buckets;
+    return quantileRows.TryGetValue(bucket, out var value) ? value : null;
+  }
+
+  /// <summary>
+  ///   Gets histogram metric's raw value by bucket.
+  /// </summary>
+  /// <param name="payload">Text payload</param>
+  /// <param name="name">Metric name</param>
+  /// <param name="labels">Metric labels</param>
+  /// <param name="bucket">Metric bucket</param>
+  /// <returns>Metric value</returns>
+  public static string GetHistogramRawValue(string payload, string name, IReadOnlyDictionary<string, string> labels, string bucket)
+  {
+    var metric = GetSingleLabeledMetric<HistogramMetric>(payload, name, labels);
+
+    var quantileRows = metric.Lines.First().Rows.BucketsRaw;
+
+    bool predicate((string key, string value) row) =>
+      string.Equals(row.key, bucket, StringComparison.InvariantCultureIgnoreCase);
+
+    return quantileRows.Any(row => predicate(row))
+      ? quantileRows.First(row => predicate(row)).value
+      : null;
+  }
+
+  /// <summary>
+  ///   Gets histogram metric's sum value.
+  /// </summary>
+  /// <param name="payload">Text payload</param>
+  /// <param name="name">Metric name</param>
+  /// <returns>Metric value</returns>
+  public static double? GetHistogramSum(string payload, string name, IReadOnlyDictionary<string, string> labels)
+  {
+    var metric = GetSingleLabeledMetric<HistogramMetric>(payload, name, labels);
+
+    return metric.Lines.First().Sum;
+  }
+
+  /// <summary>
+  ///   Gets histogram metric's raw sum value.
+  /// </summary>
+  /// <param name="payload">Text payload</param>
+  /// <param name="name">Metric name</param>
+  /// <returns>Metric value</returns>
+  public static string GetHistogramSumRawValue(string payload, string name, IReadOnlyDictionary<string, string> labels)
+  {
+    var metric = GetSingleLabeledMetric<HistogramMetric>(payload, name, labels);
+
+    return metric.Lines.First().SumRaw;
+  }
+
+  /// <summary>
+  ///   Gets histogram metric's count value.
+  /// </summary>
+  /// <param name="payload">Text payload</param>
+  /// <param name="name">Metric name</param>
+  /// <returns>Metric value</returns>
+  public static long? GetHistogramCount(string payload, string name, IReadOnlyDictionary<string, string> labels)
+  {
+    var metric = GetSingleLabeledMetric<HistogramMetric>(payload, name, labels);
+
+    return metric.Lines.First().Count;
+  }
+
+  /// <summary>
+  ///   Gets histogram metric's raw count value.
+  /// </summary>
+  /// <param name="payload">Text payload</param>
+  /// <param name="name">Metric name</param>
+  /// <returns>Metric value</returns>
+  public static string GetHistogramCountRawValue(string payload, string name, IReadOnlyDictionary<string, string> labels)
+  {
+    var metric = GetSingleLabeledMetric<HistogramMetric>(payload, name, labels);
+
+    return metric.Lines.First().CountRaw;
+  }
+
+  private static T GetSingleLabeledMetric<T>(string payload, string name, IReadOnlyDictionary<string, string> bucket)
+    where T: Metric
+  {
+    var metric = Parse(payload, name, bucket);
+
+    if (metric is null)
+    {
+      return null;
+    }
+
+    if (metric.Labels.Count() > 1)
+    {
+      throw new AmbiguousMetricValueException(metric);
+    }
+
+    if (metric is not T)
+    {
+      throw new MetricTypeMismatchException(metric);
+    }
+
+    return (T)metric;
   }
 }
